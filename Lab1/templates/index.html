@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab1 - SEG4300</title>
+</head>
+<body>
+    <h1>Lab 1: Dockerize and Serve a Pretrained Model</h1>
+    <h4>The pretrained model chosen is <a href="https://huggingface.co/microsoft/resnet-50">microsoft/resnet-50</a>.<br>It's an image classification model pre-trained on ImageNet-1k.<br>To use it, add a link to an image in the text input, and it will return the model predictions in JSON format!</h4>
+    <form method="POST">
+        <label for="link">Http(s) link to image:</label>
+        <input type="text" id="link" name="link" required>
+
+        <br>
+        <input type="submit" value="Predictions">
+    </form>
+
+    <h3>Predictions:</h3>
+    <p style="font-size:20px;"> {{ result }} </p>
+</body>
+</html>
