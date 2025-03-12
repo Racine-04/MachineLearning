@@ -67,6 +67,7 @@ loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 # Train our model
+model.train()
 epochs = 100
 losses = []
 
@@ -93,6 +94,7 @@ plt.grid()
 plt.show()
 
 # Evalutate the model
+model.eval()
 y_predict = []
 with torch.no_grad():
     y_pred = model(x_test)
