@@ -7,6 +7,7 @@ from PIL import ImageOps, Image
 from datasets import load_dataset
 from torch import nn
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.model_selection import train_test_split
 
 class FruitClassifier(nn.Module):
     def __init__(self, number_of_classes = 3):
@@ -54,35 +55,30 @@ def clean_img(img):
     new_img = transform(img)
     return new_img
 
-datasetTrain = load_dataset("arnavmahapatra/fruit-detection-dataset", split="train")
-datasetTest = load_dataset("arnavmahapatra/fruit-detection-dataset", split="test")
+dataset = load_dataset("arnavmahapatra/fruit-detection-dataset")
 
-print(datasetTrain)
-print(datasetTest)
+print(dataset)
 
 # Convert dataset into Data frame
-dfTrain= pd.DataFrame(datasetTrain) 
-dfTest= pd.DataFrame(datasetTest) 
+df = pd.concat([pd.DataFrame(dataset["train"]), pd.DataFrame(dataset["test"])], ignore_index=True)
 
-print(dfTrain.head())
-print(dfTrain.tail())
+print(df.head())
+print(df.tail())
 
 # Clean the img
-dfTrain["image"] = dfTrain["image"].apply(clean_img)
-dfTest["image"] = dfTest["image"].apply(clean_img)
+df["image"] = df["image"].apply(clean_img)
 
-img = dfTrain["image"][0]
+img = df["image"][0]
 print(img)
 
-# Shuffle the DF
-dfTrain = dfTrain.sample(frac=1, random_state=42).reset_index(drop=True)
-dfTest = dfTest.sample(frac=1, random_state=42).reset_index(drop=True)
-
+# Split the data
 # Getting values and converting into tensors
-x_train = torch.stack(dfTrain["image"].tolist())
-y_train = torch.LongTensor(dfTrain["label"].values)
-x_test = torch.stack(dfTest["image"].tolist())
-y_test = torch.LongTensor(dfTest["label"].values)
+x_data = torch.stack(df["image"].tolist())
+y_data = torch.LongTensor(df["label"].values)
+
+# 80% train 10 % valdiation, 10 % test
+x_train, x_rest, y_train, y_rest = train_test_split(x_data, y_data, test_size=0.2, random_state=42)
+x_val, x_test, y_val, y_test = train_test_split(x_rest, y_rest, test_size=0.5, random_state=42)
 
 # Initialize the model
 model = FruitClassifier().to("cpu")
@@ -94,10 +90,12 @@ loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 # Train the model 
-epochs = 15
+epochs = 30
 looses = []
+accuracies = []
 
 for e in range(epochs):
+    model.train()
     y_pred = model(x_train)
     loss = loss_fn(y_pred, y_train)
 
@@ -110,17 +108,32 @@ for e in range(epochs):
 
     print(loss.item())
 
+    with torch.no_grad():
+        model.eval()
+        y_validation = model(x_val)
+        y_validation = y_validation.argmax(dim=1)
+
+        accuracies.append(accuracy_score(np.asarray(y_val), np.asarray(y_validation)))    
+
 
 # Loss curve
-plt.plot(range(epochs), looses)
+plt.plot(range(epochs), looses, marker = "o")
 plt.grid()
 plt.title("Loss curve")
 plt.xlabel("Epochs")
 plt.ylabel("Loss")
 plt.show()
 
-# Evaluate the model
+# Accuracy curve
+plt.plot(range(epochs), accuracies, marker="o")
+plt.grid()
+plt.title("Accuracy curve")
+plt.xlabel("Epochs")
+plt.ylabel("Accuracy")
+plt.show()
 
+# Evaluate the model
+model.eval()
 with torch.no_grad():
     logits = model(x_test)
     predicted_labels = logits.argmax(dim=1)
